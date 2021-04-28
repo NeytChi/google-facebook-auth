@@ -1,14 +1,14 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Security.Claims;
-using System.Threading.Tasks;
-using System.Web;
-using System.Web.Mvc;
+﻿using GmailFbOAuth.Models;
 using Microsoft.AspNet.Identity;
 using Microsoft.AspNet.Identity.EntityFramework;
 using Microsoft.Owin.Security;
-using GmailFbOAuth.Models;
+using Newtonsoft.Json;
+using System;
+using System.Globalization;
+using System.Linq;
+using System.Threading.Tasks;
+using System.Web;
+using System.Web.Mvc;
 
 namespace GmailFbOAuth.Controllers
 {
@@ -198,6 +198,8 @@ namespace GmailFbOAuth.Controllers
         [AllowAnonymous]
         public async Task<ActionResult> ExternalLoginCallback(string returnUrl)
         {
+            DateTime? birthday = null; string hometown = string.Empty;
+
             var loginInfo = await AuthenticationManager.GetExternalLoginInfoAsync();
             if (loginInfo == null)
             {
@@ -206,6 +208,7 @@ namespace GmailFbOAuth.Controllers
 
             // Sign in the user with this external login provider if the user already has a login
             var user = await UserManager.FindAsync(loginInfo.Login);
+
             if (user != null)
             {
                 await SignInAsync(user, isPersistent: false);
@@ -216,7 +219,28 @@ namespace GmailFbOAuth.Controllers
                 // If the user does not have an account, then prompt the user to create an account
                 ViewBag.ReturnUrl = returnUrl;
                 ViewBag.LoginProvider = loginInfo.Login.LoginProvider;
-                return View("ExternalLoginConfirmation", new ExternalLoginConfirmationViewModel { UserName = loginInfo.DefaultUserName });
+                if (loginInfo.Login.LoginProvider == "Facebook")
+                {
+                    var identity = AuthenticationManager.GetExternalIdentity(DefaultAuthenticationTypes.ExternalCookie);
+                    var birthdayResult = identity.Claims.First(c => c.Type == "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/dateofbirth").Value;
+                    birthday = DateTime.ParseExact(birthdayResult.Replace('/', '.'), "MM.dd.yyyy", CultureInfo.InvariantCulture);
+                    hometown = JsonConvert.DeserializeObject<FacebookAddress>(
+                        identity.Claims.First(c => c.Type == "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/streetaddress").Value
+                        ).name;
+                }
+                else if (loginInfo.Login.LoginProvider == "Google")
+                {
+                    
+                    var identity = AuthenticationManager.GetExternalIdentity(DefaultAuthenticationTypes.ExternalCookie);
+                    var access_token = identity.FindFirstValue("GoogleAccessToken");
+                    var user_birthday = identity.FindFirstValue("birthday");
+                }
+                return View("ExternalLoginConfirmation", new ExternalLoginConfirmationViewModel 
+                { 
+                    UserName = loginInfo.DefaultUserName,
+                    BirthDate = birthday,
+                    HomeTown = hometown
+                });
             }
         }
 
@@ -246,7 +270,6 @@ namespace GmailFbOAuth.Controllers
             }
             return RedirectToAction("Manage", new { Message = ManageMessageId.Error });
         }
-
         //
         // POST: /Account/ExternalLoginConfirmation
         [HttpPost]
@@ -267,8 +290,14 @@ namespace GmailFbOAuth.Controllers
                 {
                     return View("ExternalLoginFailure");
                 }
-                var user = new ApplicationUser() { UserName = model.UserName };
+                var user = new ApplicationUser() 
+                { 
+                    UserName = model.UserName,
+                    BirthDate = model.BirthDate,
+                    HomeTown = model.HomeTown
+                };
                 var result = await UserManager.CreateAsync(user);
+                var userClaims = await UserManager.GetClaimsAsync(user.Id);
                 if (result.Succeeded)
                 {
                     result = await UserManager.AddLoginAsync(user.Id, info.Login);
@@ -406,5 +435,10 @@ namespace GmailFbOAuth.Controllers
             }
         }
         #endregion
+    }
+    public class FacebookAddress
+    {
+        public long id { get; set; }
+        public string name { get; set; }
     }
 }

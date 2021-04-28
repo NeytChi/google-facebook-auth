@@ -7,6 +7,8 @@ namespace GmailFbOAuth.Models
         [Required]
         [Display(Name = "User name")]
         public string UserName { get; set; }
+        public string HomeTown { get; set; }
+        public System.DateTime? BirthDate { get; set; }
     }
 
     public class ManageUserViewModel

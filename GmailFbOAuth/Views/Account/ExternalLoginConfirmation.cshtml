@@ -14,14 +14,28 @@
     @Html.ValidationSummary(true)
     <p class="text-info">
         You've successfully authenticated with <strong>@ViewBag.LoginProvider</strong>.
-            Please enter a user name for this site below and click the Register button to finish
-            logging in.
+        Please enter a user name for this site below and click the Register button to finish
+        logging in.
     </p>
     <div class="form-group">
         @Html.LabelFor(m => m.UserName, new { @class = "col-md-2 control-label" })
         <div class="col-md-10">
             @Html.TextBoxFor(m => m.UserName, new { @class = "form-control" })
             @Html.ValidationMessageFor(m => m.UserName)
+        </div>
+    </div>
+    <div class="form-group">
+        @Html.LabelFor(m => m.HomeTown, new { @class = "col-md-2 control-label" })
+        <div class="col-md-10">
+            @Html.TextBoxFor(m => m.HomeTown, new { @class = "form-control" })
+            @Html.ValidationMessageFor(m => m.HomeTown)
+        </div>
+    </div>
+    <div class="form-group">
+        @Html.LabelFor(m => m.BirthDate, new { @class = "col-md-2 control-label" })
+        <div class="col-md-10">
+            @Html.TextBoxFor(m => m.BirthDate, new { @class = "form-control" })
+            @Html.ValidationMessageFor(m => m.BirthDate)
         </div>
     </div>
     <div class="form-group">
